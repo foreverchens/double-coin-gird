@@ -43,7 +43,7 @@ public class Grid {
 	public void loop(Task task) {
 		while (true) {
 
-			TimeUnit.SECONDS.sleep(1);
+			TimeUnit.MINUTES.sleep(1);
 
 			// 1.获取双币价格计算汇率、检查汇率是否满足买入｜卖出条件
 			String symbolA = task.getSymbolA();
