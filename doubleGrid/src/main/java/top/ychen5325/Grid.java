@@ -50,7 +50,7 @@ public class Grid {
 			String symbolB = task.getSymbolB();
 			BigDecimal priceA = czClient.getAvgPrice(symbolA);
 			BigDecimal priceB = czClient.getAvgPrice(symbolB);
-			BigDecimal curTradeRate = priceA.divide(priceB, 4, 1);
+			BigDecimal curTradeRate = priceA.divide(priceB, 8, 1);
 			log.info("curP : A-{},B-{},curTradeRate:{},oldTradeRate:{}", priceA, priceB, curTradeRate,
 					task.getTradeRate());
 
@@ -68,10 +68,10 @@ public class Grid {
 					log.info("swapVal < 10,curVal:{}", sellQtyB.multiply(priceB));
 					continue;
 				}
-				Order order = czClient.createSellOfMarketOrder(symbolB, priceB, sellQtyB);
+				Order order = czClient.createSellOfMarketOrder(symbolB, sellQtyB);
 				BigDecimal swapVal = order.getCumQuote();
-				BigDecimal buyQtyA = swapVal.divide(priceA, 4, 1);
-				czClient.createBuyOfMarketOrder(symbolA, priceA, buyQtyA);
+				BigDecimal buyQtyA = swapVal.divide(priceA, 8, 1);
+				czClient.createBuyOfMarketOrder(symbolA, swapVal);
 
 				task.setInvestQtyA(task.getInvestQtyA().add(swapVal));
 				task.setInvestQtyB(task.getInvestQtyB().subtract(swapVal));
@@ -90,11 +90,11 @@ public class Grid {
 					log.info("swapVal < 10,curVal:{}", swapVal);
 					continue;
 				}
-				BigDecimal sellQtyA = swapVal.divide(priceA, 4, 1);
-				Order order = czClient.createSellOfMarketOrder(symbolA, priceA, sellQtyA);
+				BigDecimal sellQtyA = swapVal.divide(priceA, 8, 1);
+				Order order = czClient.createSellOfMarketOrder(symbolA, sellQtyA);
 				swapVal = order.getCumQuote();
-				BigDecimal buyQtyB = swapVal.divide(priceB, 4, 1);
-				czClient.createBuyOfMarketOrder(symbolB, priceB, buyQtyB);
+				BigDecimal buyQtyB = swapVal.divide(priceB, 8, 1);
+				czClient.createBuyOfMarketOrder(symbolB, swapVal);
 
 				task.setInvestQtyA(task.getInvestQtyA().subtract(swapVal));
 				task.setInvestQtyB(task.getInvestQtyB().add(swapVal));
@@ -130,8 +130,8 @@ public class Grid {
 
 		// ETH1个 BNB 1个
 		Map<String, BigDecimal> userAssetMap = czClient.listUserAsset();
-		BigDecimal freeQtyA = userAssetMap.get(assertA);
-		BigDecimal freeQtyB = userAssetMap.get(assertB);
+		BigDecimal freeQtyA = userAssetMap.getOrDefault(assertA,BigDecimal.ZERO);
+		BigDecimal freeQtyB = userAssetMap.getOrDefault(assertB,BigDecimal.ZERO);
 
 		// ETH 2000U 、BNB 400U
 		BigDecimal priceA = czClient.getAvgPrice(symbolA);
@@ -157,7 +157,7 @@ public class Grid {
 		} else {
 			// 存在缺额、尝试以USDT填补额度
 			BigDecimal vacancyVal = investValA.add(investValB).subtract(freeAssertValA).subtract(freeAssertValB);
-			BigDecimal usdtVal = userAssetMap.get("USDT");
+			BigDecimal usdtVal = userAssetMap.getOrDefault("USDT",BigDecimal.ZERO);
 			if (vacancyVal.compareTo(usdtVal) > 0) {
 				log.info("usdtVal : {},vacancyVal :{}", usdtVal, vacancyVal);
 				throw new RuntimeException("存在资金缺额、无法启动");
@@ -166,8 +166,8 @@ public class Grid {
 				// 资产A存在缺额、
 				vacancyVal = investValA.subtract(freeAssertValA);
 				log.info("assertA vacancyVal:{}", vacancyVal);
-				Order order = czClient.createBuyOfMarketOrder(symbolA, priceA, vacancyVal.divide(priceA, 4, 1));
-				if (!"filled".equals(order.getStatus())) {
+				Order order = czClient.createBuyOfMarketOrder(symbolA, vacancyVal);
+				if (!"FILLED".equals(order.getStatus())) {
 					throw new RuntimeException("资产A补买失败\n" + order);
 				}
 				log.info("assertA buyQty :{}", order.getExecutedQty());
@@ -176,8 +176,8 @@ public class Grid {
 				// 资产B存在缺额、
 				vacancyVal = investValB.subtract(freeAssertValB);
 				log.info("assertB vacancyVal:{}", vacancyVal);
-				Order order = czClient.createBuyOfMarketOrder(symbolB, priceB, vacancyVal.divide(priceB, 4, 1));
-				if (!"filled".equals(order.getStatus())) {
+				Order order = czClient.createBuyOfMarketOrder(symbolB, vacancyVal);
+				if (!"FILLED".equals(order.getStatus())) {
 					throw new RuntimeException("资产B补买失败\n" + order);
 				}
 				log.info("assertB buyQty :{}", order.getExecutedQty());
@@ -188,13 +188,22 @@ public class Grid {
 		/**
 		 * 计算汇率和下一买入｜卖出汇率
 		 */
-		BigDecimal tradeRate = priceA.divide(priceB, 4, 1);
+		BigDecimal tradeRate = priceA.divide(priceB, 8, 1);
 
 		BigDecimal gridRate = new BigDecimal(properties.getProperty("gridRate"));
 		BigDecimal swapValBRate = new BigDecimal(properties.getProperty("swapValBRate"));
 
 		Task task =
-				Task.builder().symbolA(symbolA).symbolB(symbolB).gridRate(gridRate).swapValRate(swapValBRate).tradeRate(tradeRate).nextBugP(tradeRate.multiply((BigDecimal.valueOf(1).subtract(gridRate)))).nextSellP(tradeRate.multiply((BigDecimal.valueOf(1).add(gridRate)))).investQtyA(investValA.divide(priceA, 4, 1)).investQtyB(investValB.divide(priceB, 4, 1)).build();
+				Task.builder()
+					.symbolA(symbolA).symbolB(symbolB)
+					.gridRate(gridRate)
+					.swapValRate(swapValBRate)
+					.tradeRate(tradeRate)
+					.nextBugP(tradeRate.multiply((BigDecimal.valueOf(1).subtract(gridRate))))
+					.nextSellP(tradeRate.multiply((BigDecimal.valueOf(1).add(gridRate))))
+					.investQtyA(investValA.divide(priceA, 8, 1))
+					.investQtyB(investValB.divide(priceB, 8, 1))
+					.build();
 		log.info("\n" + task);
 		return task;
 	}

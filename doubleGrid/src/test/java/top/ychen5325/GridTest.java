@@ -95,9 +95,9 @@ public class GridTest {
 		EasyMock.expect(czClient.getAvgPrice(EasyMock.anyString())).andReturn(BigDecimal.valueOf(2000));
 		EasyMock.expect(czClient.getAvgPrice(EasyMock.anyString())).andReturn(BigDecimal.valueOf(400));
 		Order order = new Order();
-		order.setStatus("filled");
-		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(), EasyMock.anyObject(),
-				EasyMock.anyObject())).andReturn(order);
+		order.setStatus("FILLED");
+		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(), EasyMock.anyObject()
+		)).andReturn(order);
 		EasyMock.replay(czClient);
 		task = service.init();
 		Assert.assertEquals(task.getInvestQtyA(), new BigDecimal("0.3000"));
@@ -118,9 +118,9 @@ public class GridTest {
 		EasyMock.expect(czClient.getAvgPrice(EasyMock.anyString())).andReturn(BigDecimal.valueOf(2000));
 		EasyMock.expect(czClient.getAvgPrice(EasyMock.anyString())).andReturn(BigDecimal.valueOf(400));
 		Order order = new Order();
-		order.setStatus("filled");
-		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(), EasyMock.anyObject(),
-				EasyMock.anyObject())).andReturn(order).times(2);
+		order.setStatus("FILLED");
+		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(), EasyMock.anyObject()
+		)).andReturn(order).times(2);
 		EasyMock.replay(czClient);
 		task = service.init();
 		Assert.assertEquals(task.getInvestQtyA(), new BigDecimal("0.3000"));
@@ -153,11 +153,11 @@ public class GridTest {
 		EasyMock.expect(czClient.getAvgPrice(EasyMock.anyString())).andReturn(BigDecimal.valueOf(404));
 		Order sellOrder = new Order();
 		sellOrder.setCumQuote(BigDecimal.valueOf(40.4));
-		EasyMock.expect(czClient.createSellOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject(),EasyMock.anyObject()))
+		EasyMock.expect(czClient.createSellOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject()))
 				.andReturn(sellOrder);
 
 		Order buyOrder = new Order();
-		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject(),EasyMock.anyObject()))
+		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject()))
 				.andReturn(buyOrder);
 
 		EasyMock.replay(czClient);
@@ -176,11 +176,11 @@ public class GridTest {
 		EasyMock.expect(czClient.getAvgPrice(EasyMock.anyString())).andReturn(BigDecimal.valueOf(396));
 		Order sellOrder = new Order();
 		sellOrder.setCumQuote(BigDecimal.valueOf(39.6));
-		EasyMock.expect(czClient.createSellOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject(),EasyMock.anyObject()))
+		EasyMock.expect(czClient.createSellOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject()))
 				.andReturn(sellOrder);
 
 		Order buyOrder = new Order();
-		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject(),EasyMock.anyObject()))
+		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject()))
 				.andReturn(buyOrder);
 
 		EasyMock.replay(czClient);
@@ -200,11 +200,11 @@ public class GridTest {
 		EasyMock.expect(czClient.getAvgPrice(EasyMock.anyString())).andReturn(BigDecimal.valueOf(100));
 		Order sellOrder = new Order();
 		sellOrder.setCumQuote(BigDecimal.valueOf(10));
-		EasyMock.expect(czClient.createSellOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject(),EasyMock.anyObject()))
+		EasyMock.expect(czClient.createSellOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject()))
 				.andReturn(sellOrder);
 
 		Order buyOrder = new Order();
-		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject(),EasyMock.anyObject()))
+		EasyMock.expect(czClient.createBuyOfMarketOrder(EasyMock.anyString(),EasyMock.anyObject()))
 				.andReturn(buyOrder);
 
 		EasyMock.replay(czClient);
