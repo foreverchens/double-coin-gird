@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>
+
+
+<!--    <springProperty scope="context" name="appName" source="spring.application.name"/>-->
+<!--    <springProperty scope="context" name="level" source="logback.level"/>-->
+<!--    <springProperty scope="context" name="path" source="logback.log.path"/>-->
+    <!--    <springProperty scope="context" name="KAFKA_SERVER" source="logback.deploy.kafka" defaultValue="kafka-1.huobidev.com:9092"/>-->
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d [%t] %-5p [%X{X-B3-TraceId},%X{X-B3-SpanId},%X{X-B3-ParentSpanId}] %C.%M\(%L\) -%m%n</pattern>
+        </encoder>
+    </appender>
+
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>./logs/dGrid.log</File>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <FileNamePattern>./logs/%d{yyyyMMdd}.%i.log</FileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>10MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+        </rollingPolicy>
+
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>%d [%t] %-5p [%X{X-B3-TraceId},%X{X-B3-SpanId},%X{X-B3-ParentSpanId}] %C.%M\(%L\) -%m%n</Pattern>
+        </layout>
+    </appender>
+
+
+
+    <root level="${level}">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+</configuration>

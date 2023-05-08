@@ -1,0 +1,8 @@
+ak: ak
+sk: sk
+assertA: ETH
+assertB: BNB
+investValA: 600
+investValB: 400
+gridRate: 0.01
+swapValBRate: 0.1
