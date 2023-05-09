@@ -16,6 +16,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * @author yyy
+ * @wx ychen5325
+ * @email q1416349095@gmail.com
  */
 @Slf4j
 public class Grid {
@@ -65,7 +67,7 @@ public class Grid {
 				 */
 				BigDecimal sellQtyB = task.getInvestQtyB().multiply(task.getSwapValRate());
 				if ((sellQtyB.multiply(priceB)).compareTo(BigDecimal.valueOf(10)) < 1) {
-					log.info("swapVal < 10,curVal:{}", sellQtyB.multiply(priceB));
+					log.warn("swapVal < 10,curVal:{}", sellQtyB.multiply(priceB));
 					continue;
 				}
 				Order order = czClient.createSellOfMarketOrder(symbolB, sellQtyB);
@@ -73,9 +75,11 @@ public class Grid {
 				BigDecimal buyQtyA = swapVal.divide(priceA, 8, 1);
 				czClient.createBuyOfMarketOrder(symbolA, swapVal);
 
-				task.setInvestQtyA(task.getInvestQtyA().add(swapVal));
-				task.setInvestQtyB(task.getInvestQtyB().subtract(swapVal));
-				log.info("tradeRate down sellQtyB:{},swapVal:{},buyQtyA:{}", sellQtyB, swapVal, buyQtyA);
+				log.info("tradeRate down...swapVal:{},\n curQtyA:{},buyQtyA:{}\n curQtyB:{},sellQtyB:{}",
+						swapVal, task.getInvestQtyA(), buyQtyA, task.getInvestQtyB(), sellQtyB);
+
+				task.setInvestQtyA(task.getInvestQtyA().add(buyQtyA));
+				task.setInvestQtyB(task.getInvestQtyB().subtract(sellQtyB));
 			} else if (curTradeRate.compareTo(task.getNextSellP()) > -1) {
 				// 3.当前汇率高于下一次卖出汇率、执行卖出
 				/**
@@ -87,19 +91,24 @@ public class Grid {
 				 */
 				BigDecimal swapVal = task.getInvestQtyB().multiply(priceB).multiply(task.getSwapValRate());
 				if (swapVal.compareTo(BigDecimal.valueOf(10)) < 1) {
-					log.info("swapVal < 10,curVal:{}", swapVal);
+					log.warn("swapVal < 10,curVal:{}", swapVal);
 					continue;
 				}
 				BigDecimal sellQtyA = swapVal.divide(priceA, 8, 1);
+				if (sellQtyA.compareTo(task.getInvestQtyA()) > 0) {
+					log.warn("free qtyA <= sellQtyA,freeQty:{},sellQtyA:{}", task.getInvestQtyA(), sellQtyA);
+					sellQtyA = task.getInvestQtyA();
+				}
 				Order order = czClient.createSellOfMarketOrder(symbolA, sellQtyA);
 				swapVal = order.getCumQuote();
 				BigDecimal buyQtyB = swapVal.divide(priceB, 8, 1);
 				czClient.createBuyOfMarketOrder(symbolB, swapVal);
 
-				task.setInvestQtyA(task.getInvestQtyA().subtract(swapVal));
-				task.setInvestQtyB(task.getInvestQtyB().add(swapVal));
-				log.info("tradeRate up sellQtyA:{},swapVal:{},buyQtyB:{}", sellQtyA, swapVal, buyQtyB);
+				log.info("tradeRate up...swapVal:{},\n curQtyA:{},sellQtyA:{}\n curQtyB:{},buyQtyB:{}",
+						swapVal, task.getInvestQtyA(), sellQtyA, task.getInvestQtyB(), buyQtyB);
 
+				task.setInvestQtyA(task.getInvestQtyA().subtract(sellQtyA));
+				task.setInvestQtyB(task.getInvestQtyB().add(buyQtyB));
 			} else {
 				// 窄幅震荡中。。。。
 				continue;
@@ -109,6 +118,11 @@ public class Grid {
 			task.setNextBugP(curTradeRate.multiply((BigDecimal.valueOf(1).subtract(gridRate))));
 			task.setNextSellP(curTradeRate.multiply((BigDecimal.valueOf(1).add(gridRate))));
 			log.info("nextBuyP:{},nextSellP:{}", task.getNextBugP(), task.getNextSellP());
+
+			if (task.getInvestQtyA().multiply(priceA).compareTo(BigDecimal.TEN) < 1) {
+				log.info("investValA < 10 usdt,task end...");
+				return;
+			}
 		}
 	}
 
@@ -130,8 +144,8 @@ public class Grid {
 
 		// ETH1个 BNB 1个
 		Map<String, BigDecimal> userAssetMap = czClient.listUserAsset();
-		BigDecimal freeQtyA = userAssetMap.getOrDefault(assertA,BigDecimal.ZERO);
-		BigDecimal freeQtyB = userAssetMap.getOrDefault(assertB,BigDecimal.ZERO);
+		BigDecimal freeQtyA = userAssetMap.getOrDefault(assertA, BigDecimal.ZERO);
+		BigDecimal freeQtyB = userAssetMap.getOrDefault(assertB, BigDecimal.ZERO);
 
 		// ETH 2000U 、BNB 400U
 		BigDecimal priceA = czClient.getAvgPrice(symbolA);
@@ -157,7 +171,7 @@ public class Grid {
 		} else {
 			// 存在缺额、尝试以USDT填补额度
 			BigDecimal vacancyVal = investValA.add(investValB).subtract(freeAssertValA).subtract(freeAssertValB);
-			BigDecimal usdtVal = userAssetMap.getOrDefault("USDT",BigDecimal.ZERO);
+			BigDecimal usdtVal = userAssetMap.getOrDefault("USDT", BigDecimal.ZERO);
 			if (vacancyVal.compareTo(usdtVal) > 0) {
 				log.info("usdtVal : {},vacancyVal :{}", usdtVal, vacancyVal);
 				throw new RuntimeException("存在资金缺额、无法启动");
